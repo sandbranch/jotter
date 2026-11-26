@@ -494,9 +494,22 @@ impl Rendered {
         if !self.braille || self.picker.is_some() {
             return None;
         }
-        let px = self.output_image_px(output)?;
         // Braille is text, so the output viewport clips it: fit inside it
         let cap = max_image_rows().min(super::max_output_rows().min(u16::MAX as usize) as u16);
+        // an SVG with its axis numbers as text: a frame, ticks and real numbers
+        let data = output.get("data")?;
+        if !["image/png", "image/jpeg", "image/gif"].iter().any(|m| data.get(*m).is_some())
+            && let Some(svg) = data.get("image/svg+xml").map(join_multiline)
+            && let Some(plan) = crate::axes::plan(&svg, self.width, cap, full)
+        {
+            if est {
+                return Some(vec![Line::raw(""); plan.height()]);
+            }
+            if let Some(lines) = crate::axes::draw(&plan, &svg) {
+                return Some(lines);
+            }
+        }
+        let px = self.output_image_px(output)?;
         let (cols, rows) = crate::braille::size(px, self.width, cap, full);
         if est {
             return Some(vec![Line::raw(""); rows as usize]);

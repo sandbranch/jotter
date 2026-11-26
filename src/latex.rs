@@ -129,20 +129,26 @@ pub fn svg_px(svg: &str) -> Option<(u32, u32)> {
 /// markdown images). System fonts are loaded once for `<text>` elements
 /// (matplotlib defaults to paths, but not everyone does).
 pub fn render_svg(svg: &str) -> Option<RgbaImage> {
-    use std::sync::{Arc, OnceLock};
-    static FONTS: OnceLock<Arc<usvg::fontdb::Database>> = OnceLock::new();
-    let fontdb = FONTS.get_or_init(|| {
-        let mut db = usvg::fontdb::Database::new();
-        db.load_system_fonts();
-        Arc::new(db)
-    });
-    let opt = usvg::Options { fontdb: fontdb.clone(), ..Default::default() };
+    let opt = usvg::Options { fontdb: system_fonts(), ..Default::default() };
     let tree = usvg::Tree::from_str(svg, &opt).ok()?;
     let (w, h) =
         (tree.size().width().ceil().max(1.0) as u32, tree.size().height().ceil().max(1.0) as u32);
     let mut pixmap = tiny_skia::Pixmap::new(w, h)?;
     resvg::render(&tree, tiny_skia::Transform::identity(), &mut pixmap.as_mut());
     to_rgba(&pixmap)
+}
+
+/// The system fonts, loaded once (for SVG `<text>`).
+pub fn system_fonts() -> std::sync::Arc<usvg::fontdb::Database> {
+    use std::sync::{Arc, OnceLock};
+    static FONTS: OnceLock<Arc<usvg::fontdb::Database>> = OnceLock::new();
+    FONTS
+        .get_or_init(|| {
+            let mut db = usvg::fontdb::Database::new();
+            db.load_system_fonts();
+            Arc::new(db)
+        })
+        .clone()
 }
 
 /// Crop to the columns that have visible pixels, keeping the full height, so
