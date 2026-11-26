@@ -33,12 +33,15 @@ impl Label {
 
 /// Silent code that makes a kernel send its plots as SVG with the text as
 /// `<text>`, run at kernel start when plots are Braille. Giac does already;
-/// R needs the svglite package (R's own SVG draws letters as shapes).
+/// R needs the svglite package (R's own SVG draws letters as shapes); the
+/// Wolfram kernel needs a hook that sends `JotterBraille`textSVG` (see
+/// axes_wolfram.wl).
 pub fn kernel_setup(language: &str) -> Option<&'static str> {
     match language.to_ascii_lowercase().as_str() {
         "python" => Some(PYTHON_SETUP),
         "r" => Some(R_SETUP),
         "octave" => Some("%plot -f svg"),
+        "wolfram language" => Some(include_str!("axes_wolfram.wl")),
         _ => None,
     }
 }
@@ -579,11 +582,23 @@ mod tests {
     }
 
     #[test]
+    fn wolfram() {
+        let (plan, t) = render("wolfram.svg");
+        assert_eq!(texts(&plan.xs), ["-4", "-3", "-2", "-1", "0", "1", "2"]);
+        assert!(texts(&plan.ys).contains(&"0"));
+        assert!(t[0].contains("Two curves"));
+        assert!(line_with(&t, "x").is_some() && line_with(&t, "y").is_some());
+    }
+
+    #[test]
     fn kernels_asked_for_svg_text() {
         assert!(kernel_setup("python").unwrap().contains("svg.fonttype"));
         assert!(kernel_setup("R").unwrap().contains("svglite"));
         assert_eq!(kernel_setup("Octave"), Some("%plot -f svg"));
         // Giac sends text already; others are left alone
+        assert!(
+            kernel_setup("Wolfram Language").unwrap().contains("JotterBraille`$TextSVG = True")
+        );
         assert_eq!(kernel_setup("giac"), None);
         assert_eq!(kernel_setup("julia"), None);
     }

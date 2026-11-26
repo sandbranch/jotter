@@ -536,10 +536,10 @@ impl Rendered {
             0 => viewport,
             rows => rows.min(viewport),
         };
-        // an SVG with its axis numbers as text: a frame, ticks and real numbers
+        // an SVG with its axis numbers as text: a frame, ticks and real
+        // numbers (preferred to a PNG beside it: Wolfram sends both)
         let data = output.get("data")?;
-        if !["image/png", "image/jpeg", "image/gif"].iter().any(|m| data.get(*m).is_some())
-            && let Some(svg) = data.get("image/svg+xml").map(join_multiline)
+        if let Some(svg) = data.get("image/svg+xml").map(join_multiline)
             && let Some(plan) = crate::axes::plan(&svg, self.width, cap, full)
         {
             if est {
