@@ -253,6 +253,13 @@ impl App {
                         "%config InlineBackend.figure_format = '{format}'"
                     ));
                 }
+                // Braille plots read their numbers from SVG text: ask for it
+                // (after figure_format, which it overrides in Braille mode)
+                if self.rendered.braille()
+                    && let Some(setup) = crate::axes::kernel_setup(&kernel.language)
+                {
+                    kernel.execute_silent(setup);
+                }
                 self.exec.kernel = Some(*kernel);
                 self.exec.kernel_starting = false;
                 for id in std::mem::take(&mut self.exec.deferred) {
