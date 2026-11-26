@@ -53,7 +53,7 @@ Images use the terminal's graphics protocol, which jOtter requires unless plots 
 
 `jotter --braille` draws plots as Braille text instead of images: two by four dots per character, in the colours of the plot's lines (black and grey lines take the terminal's text colour). It works for every kernel, because it draws the image the kernel sends, so Python, R, Julia, Giac or Octave plots all show up, and in any terminal, including ones without a graphics protocol (the Linux console, plain ssh). Math is then shown as a Unicode approximation.
 
-When a plot comes as SVG with its axis numbers as text (Giac's do), the numbers stay readable: the plot gets a frame drawn with box-drawing lines, tick marks on it, and the numbers printed beside the ticks, with only the plot itself in Braille. Giac's `plot(x^2+2*x+1, x=-4..2)`:
+When a plot comes as SVG with its text kept as text, the numbers stay readable: the plot gets a frame drawn with box-drawing lines, tick marks on it, and the numbers printed beside the ticks, with only the plot itself in Braille. The title goes above, the axis names beside and below, and a legend is written over the plot. Giac's `plot(x^2+2*x+1, x=-4..2)`:
 
 ```
   ┌───────────────────────────────────────┐
@@ -72,6 +72,8 @@ When a plot comes as SVG with its axis numbers as text (Giac's do), the numbers 
   └─┬─────┬─────┬─────┬─────┬─────┬─────┬─┘
    -4    -3    -2    -1     0     1     2
 ```
+
+Giac sends its plots that way. For Python, R and Octave, jOtter asks the kernel for it when it starts and plots are Braille: matplotlib's inline plots become SVG with `svg.fonttype` set to `none`, R draws its plots with the [svglite](https://svglite.r-lib.org) package (install it with `install.packages("svglite")`; R's own SVG draws letters as shapes, which leaves the numbers as dots), and Octave gets `%plot -f svg`. A notebook saved from such a session keeps its plots as SVG rather than PNG.
 
 A Braille plot is text, so it fits inside the output viewport ([`max_output_rows`](/jotter/reference/configuration/#max_output_rows)); raise that for bigger plots. <kbd>Z</kbd> draws it at full size.
 

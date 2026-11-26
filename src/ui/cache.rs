@@ -109,6 +109,11 @@ impl Rendered {
         self.braille = on;
     }
 
+    /// Plots are drawn as Braille text.
+    pub fn braille(&self) -> bool {
+        self.braille && self.picker.is_none()
+    }
+
     /// Lay every block out for `width`: rendered blocks rewrap, the rest get
     /// measured by a layout pass. Only blocks laid out for another width do
     /// work, so steady-state frames pay nothing.
