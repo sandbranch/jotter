@@ -73,7 +73,7 @@ When a plot comes as SVG with its text kept as text, the numbers stay readable: 
    -4    -3    -2    -1     0     1     2
 ```
 
-Giac sends its plots that way. For Python, R and Octave, jOtter asks the kernel for it when it starts and plots are Braille: matplotlib's inline plots become SVG with `svg.fonttype` set to `none`, R draws its plots with the [svglite](https://svglite.r-lib.org) package (install it with `install.packages("svglite")`; R's own SVG draws letters as shapes, which leaves the numbers as dots), and Octave gets `%plot -f svg`. A notebook saved from such a session keeps its plots as SVG rather than PNG.
+Giac sends its plots that way. For Python, R and Octave, jOtter asks the kernel for it when it starts and plots are Braille: matplotlib's inline plots become SVG with `svg.fonttype` set to `none`, R draws its plots with the [svglite](https://svglite.r-lib.org) package (install it with `install.packages("svglite")`; R's own SVG draws letters as shapes, which leaves the numbers as dots), Octave gets `%plot -f svg`, and Wolfram Language gets a function that draws the plot area as a picture with the numbers, title and axis names as text around it (the Wolfram Language for Jupyter kernel sends its result when ``JotterBraille`$TextSVG`` is set, which takes a small addition to that kernel's `RequestHandlers.wl`). A notebook saved from such a session keeps its plots as SVG rather than PNG.
 
 A Braille plot is text, so it fits inside the output viewport ([`max_output_rows`](/jotter/reference/configuration/#max_output_rows)); raise that for bigger plots. <kbd>Z</kbd> draws it at full size.
 
