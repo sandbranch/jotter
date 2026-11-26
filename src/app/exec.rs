@@ -243,6 +243,12 @@ impl App {
                 if kernel.language.eq_ignore_ascii_case("python") && !crate::config::get().jedi {
                     kernel.execute_silent("%config Completer.use_jedi = False");
                 }
+                // Braille plots read their numbers from SVG text: ask for it
+                if self.rendered.braille()
+                    && let Some(setup) = crate::axes::kernel_setup(&kernel.language)
+                {
+                    kernel.execute_silent(setup);
+                }
                 self.exec.kernel = Some(*kernel);
                 self.exec.kernel_starting = false;
                 for id in std::mem::take(&mut self.exec.deferred) {
