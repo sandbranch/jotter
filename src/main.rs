@@ -1,4 +1,5 @@
 mod app;
+mod axes;
 mod braille;
 mod config;
 mod editor;
