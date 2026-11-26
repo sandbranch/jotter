@@ -53,6 +53,8 @@ pub struct Rendered {
     pub blocks: Vec<CellBlock>,
     /// Frames drawn, for the blocks' `seen`.
     pub(super) frame: u64,
+    /// No graphics protocol (or `--braille`): plots drawn as Braille text.
+    pub(super) braille: bool,
 }
 
 /// Kernel language recorded in the notebook: language_info.name (written by
@@ -167,6 +169,7 @@ impl Rendered {
             width: 0,
             blocks: Vec::new(),
             frame: 0,
+            braille: false,
         };
         r.blocks = nb.cells.iter().map(|_| CellBlock::empty()).collect();
         r
@@ -175,6 +178,11 @@ impl Rendered {
     /// The terminal's graphics, once it has been asked (None: no images).
     pub fn set_picker(&mut self, picker: Option<Picker>) {
         self.picker = picker;
+    }
+
+    /// Draw plots as Braille text (used when there is no picker).
+    pub fn set_braille(&mut self, on: bool) {
+        self.braille = on;
     }
 
     /// Lay every block out for `width`: rendered blocks rewrap, the rest get
@@ -187,7 +195,12 @@ impl Rendered {
             if b.laid_for == Some(width) {
                 continue;
             }
-            if b.rendered {
+            if b.rendered && b.braille {
+                // Braille plots are drawn for a width: draw them again
+                let new = self.render_cell(cell, b.full_images, false);
+                self.replace(i, new);
+                self.blocks[i].laid_for = Some(width);
+            } else if b.rendered {
                 self.blocks[i].rewrap(width);
             } else {
                 let rows = self.render_cell(cell, b.full_images, true).rows;
@@ -347,6 +360,7 @@ impl Rendered {
                 let f = p.font_size();
                 format!("{:?}, font {}x{} px", p.protocol_type(), f.width, f.height)
             }
+            None if self.braille => "Braille text".into(),
             None => "off".into(),
         }
     }
@@ -406,6 +420,7 @@ impl Rendered {
             (self.highlight(&cell.source, self.cell_lang(cell)), Vec::new(), Vec::new())
         };
         let src_lines = lines.len();
+        let mut braille = false;
         for output in cell.outputs.iter().flatten() {
             let data = output.get("data");
             // A kernel that offers text/html means latex and markdown as
@@ -417,6 +432,9 @@ impl Rendered {
                 .or_else(|| typeset.then(|| self.try_latex(output, est))?)
             {
                 self.push_image(img, &mut lines, &mut images);
+            } else if let Some(plot) = self.try_braille(output, full_images, est) {
+                lines.extend(plot);
+                braille = true;
             } else if let Some(md) = data.and_then(|d| d.get("text/markdown")).filter(|_| typeset) {
                 let (md_lines, md_images, _) = self.render_markdown(&join_multiline(md), None, est);
                 let base = lines.len();
@@ -437,6 +455,7 @@ impl Rendered {
             collapsed: false,
             full_images,
             rendered: true,
+            braille,
             ..CellBlock::empty()
         };
         block.rewrap(self.width);
@@ -563,6 +582,23 @@ impl Rendered {
             return self.sized(self.output_image_px(output)?, full);
         }
         self.image_entry(self.decode_output_image(output)?, full)
+    }
+
+    /// Without graphics, an output's raster/SVG image as Braille lines (the
+    /// layout pass: blank lines of the same count, from the image header).
+    fn try_braille(&self, output: &Value, full: bool, est: bool) -> Option<Vec<Line<'static>>> {
+        if !self.braille || self.picker.is_some() {
+            return None;
+        }
+        let px = self.output_image_px(output)?;
+        // Braille is text, so the output viewport clips it: fit inside it
+        let cap = max_image_rows().min(super::max_output_rows().min(u16::MAX as usize) as u16);
+        let (cols, rows) = crate::braille::size(px, self.width, cap, full);
+        if est {
+            return Some(vec![Line::raw(""); rows as usize]);
+        }
+        let img = self.decode_output_image(output)?;
+        Some(crate::braille::render(&img, cols, rows))
     }
 
     /// `z`: the cell's first image output, re-decoded at native resolution and

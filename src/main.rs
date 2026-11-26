@@ -1,4 +1,5 @@
 mod app;
+mod braille;
 mod config;
 mod editor;
 mod gendocs;
@@ -44,9 +45,13 @@ struct Args {
     /// Kernelspec name (default: the notebook's kernelspec, then python3)
     #[arg(long)]
     kernel: Option<String>,
-    /// Disable inline graphics (kitty/sixel)
+    /// Disable inline graphics (kitty/sixel) and Braille plots: text only
     #[arg(long)]
     no_images: bool,
+    /// Draw plots as Braille text even when the terminal has graphics
+    /// (without a graphics protocol, plots are Braille anyway)
+    #[arg(long, conflicts_with = "no_images")]
+    braille: bool,
     /// Append a debug log (jotter + kernel wire) to this file
     #[arg(long)]
     log: Option<PathBuf>,
@@ -126,7 +131,7 @@ async fn main() -> Result<()> {
     // (jOtter doesn't start without one), then the colours for recolouring
     // plots together with the keyboard protocol (Shift+Enter, Ctrl+Enter as
     // distinct keys).
-    let picker = if args.no_images {
+    let picker = if args.no_images || args.braille {
         None
     } else {
         ratatui_image::picker::Picker::from_query_stdio_with_options(
@@ -138,13 +143,9 @@ async fn main() -> Result<()> {
         .ok()
         .filter(|p| p.protocol_type() != ratatui_image::picker::ProtocolType::Halfblocks)
     };
-    if picker.is_none() && !args.no_images {
-        let _ = ratatui::try_restore();
-        anyhow::bail!(
-            "this terminal has no graphics protocol (kitty graphics, sixel or iTerm2), which \
-             jOtter needs: use kitty, Ghostty, foot or WezTerm, or pass --no-images"
-        );
-    }
+    // no graphics protocol (or --braille): plots become Braille text, so
+    // jOtter works in any terminal, the Linux console and plain ssh included
+    app.rendered.set_braille(picker.is_none() && !args.no_images);
     app.spawn_kernel();
     let (palette, enhanced) = recolor::query();
     recolor::init(palette.filter(|_| picker.is_some() && config::get().recolor_plots));

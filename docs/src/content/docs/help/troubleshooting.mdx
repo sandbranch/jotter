@@ -34,9 +34,9 @@ If that isn't your project's Python, activate the right environment before start
 
 The status line shows the reason and `R to restart`. The most common cause is running out of memory. Press <kbd>R</kbd> to start a fresh kernel, and run jOtter with `--log` to see what the kernel printed before it died.
 
-## jOtter says the terminal has no graphics protocol
+## Plots are drawn as Braille dots
 
-jOtter needs a terminal with kitty graphics, sixel or the iTerm2 protocol and doesn't start without one. Use one of the terminals in [Terminal compatibility](/jotter/reference/terminals/).
+The terminal has no graphics protocol (kitty graphics, sixel or iTerm2), so jOtter draws plots as Braille text, which works anywhere. For sharp images, use one of the terminals in [Terminal compatibility](/jotter/reference/terminals/). Inside tmux, also check `allow-passthrough` below.
 
 ## Images are missing
 
